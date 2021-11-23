@@ -1,5 +1,5 @@
 import requests
-import xlsxwriter
+import csv
 from bs4 import BeautifulSoup
 url = "https://nces.ed.gov/COLLEGENAVIGATOR/"
 home="?s=all&sp=4&pg="
@@ -25,29 +25,22 @@ def fetch(p):
         hrefs.append(h)
 
 
-# for i in range(5,8,1):
+# for i in range(1,2,1):
 #     s=str(i)
-#     fetch(s)
+# #     fetch(s)
 # hrefs.append('?s=all&sp=4&pg=1&id=100654')
 # hrefs.append( '?s=all&sp=4&pg=2&id=138947')
 # hrefs.append( '?s=all&sp=4&pg=1&id=237215')
 
 fetch("0")
 
-wb=xlsxwriter.Workbook('output.xlsx')
-worksheet=wb.add_worksheet()
-row=0
-column=0
 
 titles=["Name","Street","City","State","Zip","Phone","Website","Type","Awards","Campus Setting"," Campus Housing","Student Population","Student to Faculty ratio"]
-bold = wb.add_format({'bold': True})
 
-for i in titles:
-    worksheet.write(row, column,i,bold)
-    column+=1
-row+=1
-def getCollegeInfo(link, row, column):
+data= list()
+def getCollegeInfo(link):
     
+    collegeInstance = list()
     r = requests.get(url+link)
     html = r.content
     Collegesoup = BeautifulSoup(html, 'html.parser')
@@ -68,36 +61,40 @@ def getCollegeInfo(link, row, column):
             street+=i
         else:
             street=street+","+i
-            
-    print(collegeInfo[0])
-    print(street)
+    
 
-    worksheet.write(row, column, collegeInfo[0])
-    column+=1
-    worksheet.write(row, column, street)
-    column+=1
-    worksheet.write(row, column, collegeInfo[-2])
-    column+=1
+    collegeInstance.append(collegeInfo[0])
+    collegeInstance.append(street)
+    collegeInstance.append(collegeInfo[-2])
 
     StatePin=collegeInfo[-1].rsplit(" ",1)
-    worksheet.write(row, column, StatePin[0])
-    column+=1
-    worksheet.write(row, column, StatePin[1])
-    column+=1
+
+    collegeInstance.append(StatePin[0])
+    collegeInstance.append(StatePin[1])
     
     srb = Collegesoup.find_all('td', class_ = 'srb')
     for elem in srb:
         sib = elem.find_next_sibling()
-        text = sib.get_text(separator=", ").strip()
-        
-        worksheet.write(row, column, text)
-        column+=1
+        text = sib.get_text(separator=", ").strip()    
+        collegeInstance.append(text)
+    print(collegeInstance)
+    data.append(collegeInstance)
+
 
 for link in hrefs:
     column=0
-    getCollegeInfo(link, row, column)
-    row+=1
+    getCollegeInfo(link)
 
-wb.close()
-
+filename = "output.csv"
+    
+# writing to csv file 
+with open(filename, 'w', newline='') as csvfile: 
+    # creating a csv writer object 
+    csvwriter = csv.writer(csvfile) 
+        
+    # writing the fields 
+    csvwriter.writerow(titles) 
+        
+    # writing the data rows 
+    csvwriter.writerows(data)
 
